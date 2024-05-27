@@ -93,7 +93,7 @@ class GradleVersionResolver {
             try {
                 this.gradleVersion = GradleVersion.version(gradleVersionString);
             } catch (Exception e) {
-                throw new WrapperVersionException("Invalid version specified for argument '--gradle-version'", e);
+                throw new WrapperVersionException("Invalid version specified for argument '--gradle-version': '" + gradleVersionString + "'. Valid examples: 1.0, 1.0-rc-1, latest, nightly.", e);
             }
         }
 
