@@ -35,6 +35,10 @@ import javax.annotation.Nullable;
 public abstract class AbstractMinimalProvider<T> implements ProviderInternal<T>, Managed {
     private static final DisplayName DEFAULT_DISPLAY_NAME = Describables.of("this provider");
 
+    public AbstractMinimalProvider() {
+        EvaluationContext.current().providerCreated(this);
+    }
+
     @Override
     public <S> ProviderInternal<S> map(final Transformer<? extends @org.jetbrains.annotations.Nullable S, ? super T> transformer) {
         // Could do a better job of inferring the type

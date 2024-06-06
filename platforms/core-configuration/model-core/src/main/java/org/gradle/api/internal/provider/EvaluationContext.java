@@ -17,6 +17,7 @@
 package org.gradle.api.internal.provider;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MapMaker;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.gradle.api.GradleException;
@@ -24,6 +25,7 @@ import org.gradle.api.GradleException;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -98,6 +100,10 @@ public final class EvaluationContext {
 
     private final ThreadLocal<PerThreadContext> threadLocalContext = ThreadLocal.withInitial(() -> new PerThreadContext(null));
 
+    private volatile boolean atConfigurationTime;
+    // This is used as a ConcurrentWeakSet rather than map.
+    private final ConcurrentMap<EvaluationOwner, Boolean> executionTimeProviders = new MapMaker().weakKeys().makeMap();
+
     /**
      * Returns the current instance of EvaluationContext for this thread.
      *
@@ -109,12 +115,41 @@ public final class EvaluationContext {
 
     private EvaluationContext() {}
 
+    void setAtConfigurationTime(boolean atConfigurationTime) {
+        this.atConfigurationTime = atConfigurationTime;
+    }
+
+    void providerCreated(ProviderInternal<?> provider) {
+        if (atConfigurationTime) {
+            return;
+        }
+
+        executionTimeProviders.put(provider, Boolean.TRUE);
+    }
+
+    public boolean isComputingFixedExecutionTimeValue() {
+        EvaluationOwner owner = getOwner();
+        if (owner != null) {
+            // TODO(mlopatkin) this is obviously imprecise, because not all owners created at configuration time are fixed values.
+            return !executionTimeProviders.containsKey(owner);
+        }
+        return false;
+    }
+
     /**
      * Adds the owner to the set of "evaluating" objects and returns the context instance to remove it from there upon closing.
      * This method is intended to be used in the try-with-resources block's initializer.
      */
     public ScopeContext open(EvaluationOwner owner) {
         return getContext().open(owner);
+    }
+
+    /**
+     * Returns the "topmost" evaluation owner or null if nothing is being evaluated right now.
+     */
+    @Nullable
+    public EvaluationOwner getOwner() {
+        return getContext().getOwner();
     }
 
     /**

@@ -18,6 +18,7 @@ package org.gradle.configurationcache
 
 import org.gradle.api.internal.TaskInternal
 import org.gradle.api.internal.provider.ConfigurationTimeBarrier
+import org.gradle.api.internal.provider.EvaluationContext
 import org.gradle.api.internal.tasks.TaskExecutionAccessChecker
 import org.gradle.api.internal.tasks.execution.TaskExecutionAccessListener
 import org.gradle.configurationcache.serialization.Workarounds
@@ -29,19 +30,19 @@ abstract class AbstractTaskProjectAccessChecker(
     private val workExecutionTracker: WorkExecutionTracker
 ) : TaskExecutionAccessChecker {
     override fun notifyProjectAccess(task: TaskInternal) {
-        if (shouldReportExecutionTimeAccess(task)) {
+        if (!isAccessAllowedForEvaluationContext() && shouldReportExecutionTimeAccess(task)) {
             broadcaster.onProjectAccess("Task.project", task, currentTask())
         }
     }
 
     override fun notifyTaskDependenciesAccess(task: TaskInternal, invocationDescription: String) {
-        if (shouldReportExecutionTimeAccess(task)) {
+        if (!isAccessAllowedForEvaluationContext() && shouldReportExecutionTimeAccess(task)) {
             broadcaster.onTaskDependenciesAccess(invocationDescription, task, currentTask())
         }
     }
 
     override fun notifyConventionAccess(task: TaskInternal, invocationDescription: String) {
-        if (shouldReportExecutionTimeAccess(task)) {
+        if (!isAccessAllowedForEvaluationContext() && shouldReportExecutionTimeAccess(task)) {
             broadcaster.onConventionAccess(invocationDescription, task, currentTask())
         }
     }
@@ -51,6 +52,9 @@ abstract class AbstractTaskProjectAccessChecker(
 
     protected
     abstract fun shouldReportExecutionTimeAccess(task: TaskInternal): Boolean
+
+    protected
+    fun isAccessAllowedForEvaluationContext(): Boolean = EvaluationContext.current().isComputingFixedExecutionTimeValue
 }
 
 
