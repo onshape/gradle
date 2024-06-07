@@ -18,8 +18,7 @@ import gradlebuild.modules.extension.ExternalModulesExtension
 
 plugins {
     kotlin("jvm")
-    id("gradlebuild.instrumented-kotlin-project")
-    id("gradlebuild.strict-compile")
+    id("gradlebuild.instrumented-project")
 }
 
 val libs = project.the<ExternalModulesExtension>()
@@ -32,8 +31,4 @@ dependencies {
     compileOnly(libs.asmTree)
     annotationProcessor(project(":internal-instrumentation-processor"))
     annotationProcessor(platform(project(":distributions-dependencies")))
-}
-
-strictCompile {
-    ignoreAnnotationProcessing() // Without this, javac will complain about unclaimed annotations
 }

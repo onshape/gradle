@@ -15,8 +15,8 @@
  */
 
 plugins {
+    `java-library`
     id("gradlebuild.jvm-library")
     id("gradlebuild.test-fixtures")
     id("gradlebuild.arch-test")
-    `java-library`
 }

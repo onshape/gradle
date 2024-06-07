@@ -18,8 +18,7 @@ import gradlebuild.modules.extension.ExternalModulesExtension
 
 plugins {
     id("java-library")
-    id("gradlebuild.instrumented-java-project")
-    id("gradlebuild.strict-compile")
+    id("gradlebuild.instrumented-project")
 }
 
 val libs = project.the<ExternalModulesExtension>()
@@ -36,8 +35,4 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Aorg.gradle.annotation.processing.instrumented.project=${project.name}")
-}
-
-strictCompile {
-    ignoreAnnotationProcessing() // Without this, javac will complain about unclaimed annotations
 }

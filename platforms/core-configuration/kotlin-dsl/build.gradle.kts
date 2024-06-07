@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":files"))
     implementation(project(":functional"))
     implementation(projects.io)
+    implementation(project(":java-language-extensions"))
     implementation(project(":messaging"))
     implementation(project(":model-core"))
     implementation(project(":normalization-java"))
@@ -143,6 +144,7 @@ dependencyAnalysis {
     issues {
         onIncorrectConfiguration {
             exclude(libs.kotlinReflect)
+            exclude(":java-language-extensions")
         }
     }
 }
