@@ -21,8 +21,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 
 plugins {
+    id("gradlebuild.jvm-library")
     kotlin("jvm")
-    id("gradlebuild.java-library")
     id("gradlebuild.ktlint")
 }
 

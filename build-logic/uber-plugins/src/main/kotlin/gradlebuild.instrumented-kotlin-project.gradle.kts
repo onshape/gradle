@@ -14,10 +14,30 @@
  * limitations under the License.
  */
 
+import gradlebuild.modules.extension.ExternalModulesExtension
+
 plugins {
+    kotlin("jvm")
+    id("gradlebuild.instrumented-kotlin-project")
     id("gradlebuild.strict-compile")
+}
+
+val libs = project.the<ExternalModulesExtension>()
+
+dependencies {
+    api(project(":internal-instrumentation-api"))
+    implementation(project(":base-asm"))
+    compileOnly(libs.asm)
+    compileOnly(libs.asmUtil)
+    compileOnly(libs.asmTree)
+    annotationProcessor(project(":internal-instrumentation-processor"))
+    annotationProcessor(platform(project(":distributions-dependencies")))
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Aorg.gradle.annotation.processing.instrumented.project=${project.name}")
+}
+
+strictCompile {
+    ignoreAnnotationProcessing() // Without this, javac will complain about unclaimed annotations
 }
