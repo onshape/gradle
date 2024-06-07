@@ -11,6 +11,10 @@ version = "4.4.1"
 base.archivesName = "plugins"
 
 dependencies {
+    api(project(":logging-api"))
+
+    api(libs.kotlinStdlib)
+
     compileOnly(project(":base-services"))
     compileOnly(project(":logging"))
     compileOnly(project(":core-api"))
@@ -25,7 +29,15 @@ dependencies {
     compileOnly(libs.slf4jApi)
     compileOnly(libs.inject)
 
-    implementation(libs.kotlinStdlib)
+    implementation(project(":java-language-extensions"))
+
+    implementation(libs.futureKotlin("gradle-plugin-api"))
+    implementation(libs.futureKotlin("gradle-plugin-api")) {
+        capabilities {
+            requireCapability("org.jetbrains.kotlin:kotlin-gradle-plugin-api-gradle82")
+        }
+    }
+
     implementation(libs.futureKotlin("gradle-plugin"))
     implementation(libs.futureKotlin("sam-with-receiver"))
     implementation(libs.futureKotlin("assignment"))
