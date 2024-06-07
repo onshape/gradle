@@ -29,7 +29,7 @@ dependencies {
     compileOnly(libs.slf4jApi)
     compileOnly(libs.inject)
 
-    implementation(project(":java-language-extensions"))
+    api(project(":java-language-extensions"))
 
     implementation(libs.futureKotlin("gradle-plugin-api"))
     implementation(libs.futureKotlin("gradle-plugin-api")) {
@@ -90,4 +90,12 @@ pluginPublish {
         pluginId = "org.gradle.kotlin.kotlin-dsl.precompiled-script-plugins",
         pluginClass = "org.gradle.kotlin.dsl.plugins.precompiled.PrecompiledScriptPlugins"
     )
+}
+
+dependencyAnalysis {
+    issues {
+        onIncorrectConfiguration {
+            exclude(":java-language-extensions")
+        }
+    }
 }

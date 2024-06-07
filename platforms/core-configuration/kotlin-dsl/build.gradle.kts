@@ -8,12 +8,17 @@ plugins {
 description = "Kotlin DSL Provider"
 
 dependencies {
+    api(project(":base-services"))
     api(project(":build-process-services"))
     api(project(":concurrent"))
+    api(project(":core"))
+    api(project(":core-api"))
     api(project(":hashing"))
     api(project(":kotlin-dsl-tooling-models"))
     api(project(":java-language-extensions"))
     api(project(":logging-api"))
+    api(project(":process-services"))
+    api(project(":tooling-api"))
 
     api(libs.kotlinReflect)
     api(libs.futureKotlin("scripting-common")) {
@@ -30,10 +35,7 @@ dependencies {
     api(libs.kotlinStdlib)
     api(libs.slf4jApi)
 
-    api(project(":base-services"))
     implementation(project(":build-operations"))
-    api(project(":core"))
-    api(project(":core-api"))
     implementation(project(":enterprise-logging"))
     implementation(project(":enterprise-operations"))
     implementation(project(":execution"))
@@ -46,18 +48,14 @@ dependencies {
     implementation(project(":model-core"))
     implementation(project(":normalization-java"))
     implementation(project(":logging"))
-    api(project(":process-services"))
     implementation(project(":persistent-cache"))
     implementation(project(":resources"))
     implementation(project(":service-provider"))
     implementation(project(":snapshots"))
-    api(project(":tooling-api"))
-
-
-    implementation(libs.asm)
-    implementation(libs.groovyJson)
 
     implementation("org.gradle:kotlin-dsl-shared-runtime")
+    implementation(libs.asm)
+    implementation(libs.groovyJson)
     implementation(libs.kotlinCompilerEmbeddable)
 
     implementation(libs.futureKotlin("scripting-jvm")) {
