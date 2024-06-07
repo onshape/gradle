@@ -1,5 +1,3 @@
-import gradle.kotlin.dsl.accessors._ba338bcbfbb9cfe108389dab722e441c.strictCompile
-
 /*
  * Copyright 2023 the original author or authors.
  *
