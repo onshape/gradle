@@ -17,7 +17,3 @@
 plugins {
     id("gradlebuild.strict-compile")
 }
-
-tasks.withType<JavaCompile>().configureEach {
-    options.compilerArgs.add("-Aorg.gradle.annotation.processing.instrumented.project=${project.name}")
-}
