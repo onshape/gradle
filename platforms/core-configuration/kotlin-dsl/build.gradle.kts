@@ -11,11 +11,11 @@ dependencies {
     api(project(":build-process-services"))
     api(project(":concurrent"))
     api(project(":hashing"))
-    api(project(":java-language-extensions"))
     api(project(":kotlin-dsl-tooling-models"))
+    api(project(":java-language-extensions"))
     api(project(":logging-api"))
 
-
+    api(libs.kotlinReflect)
     api(libs.futureKotlin("scripting-common")) {
         isTransitive = false
     }
@@ -42,7 +42,6 @@ dependencies {
     implementation(project(":files"))
     implementation(project(":functional"))
     implementation(projects.io)
-    implementation(project(":java-language-extensions"))
     implementation(project(":messaging"))
     implementation(project(":model-core"))
     implementation(project(":normalization-java"))
@@ -59,7 +58,6 @@ dependencies {
     implementation(libs.groovyJson)
 
     implementation("org.gradle:kotlin-dsl-shared-runtime")
-    api(libs.kotlinReflect)
     implementation(libs.kotlinCompilerEmbeddable)
 
     implementation(libs.futureKotlin("scripting-jvm")) {
@@ -144,7 +142,6 @@ dependencyAnalysis {
     issues {
         onIncorrectConfiguration {
             exclude(libs.kotlinReflect)
-            exclude(":java-language-extensions")
         }
     }
 }
