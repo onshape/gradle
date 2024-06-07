@@ -15,11 +15,19 @@ dependencies {
     api(project(":kotlin-dsl-tooling-models"))
     api(project(":logging-api"))
 
+
+    api(libs.futureKotlin("scripting-common")) {
+        isTransitive = false
+    }
+    api(libs.futureKotlin("scripting-compiler-impl-embeddable")) {
+        isTransitive = false
+    }
+    api(libs.futureKotlin("script-runtime"))
+    api(libs.groovy)
     api(libs.guava)
     api(libs.inject)
     api(libs.jsr305)
     api(libs.kotlinStdlib)
-    api(libs.kotlinReflect)
     api(libs.slf4jApi)
 
     api(project(":base-services"))
@@ -45,25 +53,18 @@ dependencies {
     implementation(project(":snapshots"))
     api(project(":tooling-api"))
 
-    implementation("org.gradle:kotlin-dsl-shared-runtime")
 
-    implementation(libs.groovy)
-    implementation(libs.groovyJson)
     implementation(libs.asm)
+    implementation(libs.groovyJson)
 
+    implementation("org.gradle:kotlin-dsl-shared-runtime")
+    api(libs.kotlinReflect)
     implementation(libs.kotlinCompilerEmbeddable)
-    implementation(libs.futureKotlin("script-runtime"))
 
-    implementation(libs.futureKotlin("scripting-common")) {
-        isTransitive = false
-    }
     implementation(libs.futureKotlin("scripting-jvm")) {
         isTransitive = false
     }
     implementation(libs.futureKotlin("scripting-compiler-embeddable")) {
-        isTransitive = false
-    }
-    implementation(libs.futureKotlin("scripting-compiler-impl-embeddable")) {
         isTransitive = false
     }
     implementation(libs.futureKotlin("sam-with-receiver-compiler-plugin")) {
@@ -136,4 +137,12 @@ testFilesCleanup.reportOnly = true
 
 strictCompile {
     ignoreDeprecations()
+}
+
+dependencyAnalysis {
+    issues {
+        onIncorrectConfiguration {
+            exclude(libs.kotlinReflect)
+        }
+    }
 }
