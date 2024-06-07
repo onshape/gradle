@@ -36,6 +36,7 @@ dependencies {
     api(libs.slf4jApi)
 
     implementation(project(":build-operations"))
+    implementation(project(":build-option"))
     implementation(project(":enterprise-logging"))
     implementation(project(":enterprise-operations"))
     implementation(project(":execution"))
