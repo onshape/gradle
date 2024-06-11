@@ -8,10 +8,10 @@ dependencies {
     api(project(":base-services"))
     api(project(":core"))
     api(project(":core-api"))
-    api(project(":java-language-extensions"))
     api(project(":kotlin-dsl"))
     api(project(":logging"))
     api(project(":service-provider"))
+    api(project(":stdlib-java-extensions"))
 
     api(libs.kotlinStdlib)
     api(libs.inject)
@@ -20,7 +20,6 @@ dependencies {
     implementation(project(":file-collections"))
     implementation(project(":functional"))
     implementation(project(":hashing"))
-    implementation(project(":logging-api"))
     implementation(project(":plugin-development"))
     implementation(project(":plugins-java-base"))
     implementation(project(":platform-jvm"))
@@ -42,4 +41,12 @@ dependencies {
 
 packageCycles {
     excludePatterns.add("org/gradle/kotlin/dsl/provider/plugins/precompiled/tasks/**")
+}
+
+dependencyAnalysis {
+    issues {
+        onUsedTransitiveDependencies() {
+            exclude(":logging-api")
+        }
+    }
 }

@@ -15,9 +15,8 @@ dependencies {
     api(project(":core-api"))
     api(project(":hashing"))
     api(project(":kotlin-dsl-tooling-models"))
-    api(project(":java-language-extensions"))
-    api(project(":logging-api"))
     api(project(":process-services"))
+    api(project(":stdlib-java-extensions"))
     api(project(":tooling-api"))
 
     api(libs.kotlinReflect)
@@ -49,6 +48,7 @@ dependencies {
     implementation(project(":model-core"))
     implementation(project(":normalization-java"))
     implementation(project(":logging"))
+    implementation(project(":logging-api"))
     implementation(project(":persistent-cache"))
     implementation(project(":resources"))
     implementation(project(":service-provider"))
@@ -141,6 +141,7 @@ dependencyAnalysis {
     issues {
         onIncorrectConfiguration {
             exclude(libs.kotlinReflect)
+            exclude(":logging-api")
         }
     }
 }

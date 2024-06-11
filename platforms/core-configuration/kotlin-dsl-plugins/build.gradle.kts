@@ -25,11 +25,10 @@ dependencies {
     compileOnly(project(":platform-jvm"))
     compileOnly(project(":plugin-development"))
     compileOnly(project(":kotlin-dsl"))
+    compileOnly(project(":stdlib-java-extensions"))
 
     compileOnly(libs.slf4jApi)
     compileOnly(libs.inject)
-
-    api(project(":java-language-extensions"))
 
     implementation(libs.futureKotlin("gradle-plugin-api"))
     implementation(libs.futureKotlin("gradle-plugin-api")) {
@@ -95,7 +94,7 @@ pluginPublish {
 dependencyAnalysis {
     issues {
         onIncorrectConfiguration {
-            exclude(":java-language-extensions")
+            exclude(":stdlib-java-extensions")
         }
     }
 }
