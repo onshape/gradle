@@ -22,6 +22,7 @@ import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.internal.tasks.properties.InspectionScheme
 import org.gradle.internal.properties.PropertyValue
 import org.gradle.internal.properties.bean.PropertyWalker
+import org.gradle.plugin.software.internal.SoftwareTypeImplementation
 import org.gradle.plugin.software.internal.SoftwareTypeRegistry
 import spock.lang.Specification
 
@@ -44,7 +45,7 @@ class AddSoftwareTypesAsExtensionsPluginTargetTest extends Specification {
         pluginTarget.applyImperative(null, plugin)
 
         then:
-        1 * softwareTypeRegistry.isRegistered(_) >> true
+        1 * softwareTypeRegistry.implementationFor(_) >> Optional.of(Mock(SoftwareTypeImplementation))
         1 * inspectionScheme.getPropertyWalker() >> propertyWalker
         1 * propertyWalker.visitProperties(plugin, _, _) >> { args -> args[2].visitSoftwareTypeProperty("foo", propertyValue, softwareType) }
         1 * target.getExtensions() >> extensions
@@ -64,7 +65,7 @@ class AddSoftwareTypesAsExtensionsPluginTargetTest extends Specification {
         pluginTarget.applyImperative(null, plugin)
 
         then:
-        1 * softwareTypeRegistry.isRegistered(_) >> false
+        1 * softwareTypeRegistry.implementationFor(_) >> Optional.empty()
 
         and:
         1 * delegate.applyImperative(null, plugin)

@@ -68,7 +68,7 @@ public class AddSoftwareTypesAsExtensionsPluginTarget implements PluginTarget {
 
     @Override
     public void applyImperative(@Nullable String pluginId, Plugin<?> plugin) {
-        if (softwareTypeRegistry.isRegistered(Cast.uncheckedCast(plugin.getClass()))) {
+        if (softwareTypeRegistry.implementationFor(Cast.uncheckedCast(plugin.getClass())).isPresent()) {
             DefaultTypeValidationContext typeValidationContext = DefaultTypeValidationContext.withRootType(plugin.getClass(), false);
             inspectionScheme.getPropertyWalker().visitProperties(
                 plugin,

@@ -42,6 +42,7 @@ import org.gradle.api.internal.initialization.DefaultScriptHandlerFactory;
 import org.gradle.api.internal.initialization.ScriptHandlerFactory;
 import org.gradle.api.internal.initialization.ScriptHandlerInternal;
 import org.gradle.api.internal.plugins.AddSoftwareTypesAsExtensionsPluginTarget;
+import org.gradle.api.internal.plugins.ApplySoftwareTypeConventionsPluginTarget;
 import org.gradle.api.internal.plugins.DefaultPluginManager;
 import org.gradle.api.internal.plugins.ImperativeOnlyPluginTarget;
 import org.gradle.api.internal.plugins.PluginInstantiator;
@@ -101,6 +102,7 @@ import org.gradle.normalization.internal.DefaultInputNormalizationHandler;
 import org.gradle.normalization.internal.DefaultRuntimeClasspathNormalization;
 import org.gradle.normalization.internal.InputNormalizationHandlerInternal;
 import org.gradle.normalization.internal.RuntimeClasspathNormalizationInternal;
+import org.gradle.plugin.software.internal.ConventionHandler;
 import org.gradle.plugin.software.internal.PluginScheme;
 import org.gradle.plugin.software.internal.SoftwareTypeRegistry;
 import org.gradle.process.internal.ExecFactory;
@@ -108,6 +110,7 @@ import org.gradle.tooling.provider.model.internal.DefaultToolingModelBuilderRegi
 import org.gradle.util.Path;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * Contains the services for a given project.
@@ -204,7 +207,8 @@ public class ProjectScopeServices extends ScopedServiceRegistry {
         CollectionCallbackActionDecorator decorator,
         DomainObjectCollectionFactory domainObjectCollectionFactory,
         PluginScheme pluginScheme,
-        SoftwareTypeRegistry softwareTypeRegistry
+        SoftwareTypeRegistry softwareTypeRegistry,
+        List<ConventionHandler> conventionHandlers
         ) {
         PluginTarget ruleBasedTarget = new RuleBasedPluginTarget(
             project,
@@ -212,11 +216,17 @@ public class ProjectScopeServices extends ScopedServiceRegistry {
             get(ModelRuleExtractor.class),
             get(ModelRuleSourceDetector.class)
         );
-        PluginTarget pluginTarget = new AddSoftwareTypesAsExtensionsPluginTarget(
+        PluginTarget addSoftwareTypesPluginTarget = new AddSoftwareTypesAsExtensionsPluginTarget(
             project,
             ruleBasedTarget,
             pluginScheme.getInspectionScheme(),
             softwareTypeRegistry
+        );
+        PluginTarget pluginTarget = new ApplySoftwareTypeConventionsPluginTarget(
+            project,
+            addSoftwareTypesPluginTarget,
+            softwareTypeRegistry,
+            conventionHandlers
         );
         return instantiator.newInstance(
             DefaultPluginManager.class,
