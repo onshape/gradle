@@ -102,7 +102,7 @@ class PropertyUpgradeCodeGenTest extends InstrumentationCodeGenTest {
             @Generated
             public class InterceptorDeclaration_PropertyUpgradesJvmBytecode_TestProject implements JvmBytecodeCallInterceptor, FilterableBytecodeInterceptor.BytecodeUpgradeInterceptor {
                 @Override
-                public boolean visitMethodInsn(String className, int opcode, String owner, String name,
+                public boolean visitMethodInsn(MethodVisitorScope mv, String className, int opcode, String owner, String name,
                                                String descriptor, boolean isInterface, Supplier<MethodNode> readMethodNode) {
                     if (metadata.isInstanceOf(owner, "org/gradle/test/Task")) {
                          if (name.equals("isIncremental") && descriptor.equals("()Z") && (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE)) {
@@ -235,7 +235,7 @@ class PropertyUpgradeCodeGenTest extends InstrumentationCodeGenTest {
             @Generated
             public class InterceptorDeclaration_PropertyUpgradesJvmBytecode_TestProject implements JvmBytecodeCallInterceptor, FilterableBytecodeInterceptor.BytecodeUpgradeInterceptor {
                 @Override
-                public boolean visitMethodInsn(String className, int opcode, String owner, String name,
+                public boolean visitMethodInsn(MethodVisitorScope mv, String className, int opcode, String owner, String name,
                                                String descriptor, boolean isInterface, Supplier<MethodNode> readMethodNode) {
                     if (metadata.isInstanceOf(owner, "org/gradle/test/Task")) {
                          if (name.equals("getTargetCompatibility") && descriptor.equals("()Ljava/lang/String;") && (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE)) {
@@ -332,7 +332,7 @@ class PropertyUpgradeCodeGenTest extends InstrumentationCodeGenTest {
             @Generated
             public class InterceptorDeclaration_PropertyUpgradesJvmBytecode_TestProject implements JvmBytecodeCallInterceptor, FilterableBytecodeInterceptor.BytecodeUpgradeInterceptor {
                 @Override
-                public boolean visitMethodInsn(String className, int opcode, String owner, String name,
+                public boolean visitMethodInsn(MethodVisitorScope mv, String className, int opcode, String owner, String name,
                                                String descriptor, boolean isInterface, Supplier<MethodNode> readMethodNode) {
                     if (metadata.isInstanceOf(owner, "org/gradle/test/Task")) {
                         if (name.equals("getDestinationDir") && descriptor.equals("()Ljava/io/File;") && (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE)) {

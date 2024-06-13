@@ -72,6 +72,7 @@ errorprone {
 }
 
 dependencies {
+    api(projects.baseAsm)
     api(projects.concurrent)
     api(projects.instrumentationAgentServices)
     api(projects.serialization)
@@ -126,7 +127,6 @@ dependencies {
     api(libs.nativePlatform)
 
     implementation(projects.io)
-    implementation(project(":base-asm"))
     implementation(project(":input-tracking"))
     implementation(project(":model-groovy"))
 
