@@ -74,7 +74,7 @@ fun EvaluationSchemaBuilder.softwareTypesConventions(
 private
 fun applySoftwareTypePlugin(receiverObject: Any, softwareType: SoftwareTypeImplementation<*>): Any {
     require(receiverObject is ProjectInternal) { "unexpected receiver, expected a ProjectInternal instance, got $receiverObject" }
-    softwareType.applyWithContext(receiverObject, SoftwareTypeImplementation.ApplicationContext.DECLARATIVE)
+    receiverObject.pluginManager.apply(softwareType.pluginClass)
     return receiverObject.extensions.getByName(softwareType.softwareType)
 }
 
