@@ -33,12 +33,8 @@ import org.gradle.internal.reflect.DefaultTypeValidationContext;
 import org.gradle.internal.reflect.validation.TypeValidationProblemRenderer;
 import org.gradle.model.internal.type.ModelType;
 import org.gradle.plugin.software.internal.SoftwareTypeRegistry;
-import org.gradle.plugin.use.PluginId;
-import org.gradle.plugin.use.internal.DefaultPluginId;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
@@ -103,10 +99,6 @@ public class AddSoftwareTypesAsExtensionsPluginTarget implements PluginTarget {
         return ModelType.of(new DslObject(parameterObject).getDeclaredType()).getDisplayName();
     }
 
-    private static Supplier<Optional<PluginId>> getOptionalSupplier(@Nullable String pluginId) {
-        return () -> Optional.ofNullable(pluginId).map(DefaultPluginId::of);
-    }
-
     @Override
     public void applyRules(@Nullable String pluginId, Class<?> clazz) {
         delegate.applyRules(pluginId, clazz);
@@ -126,9 +118,9 @@ public class AddSoftwareTypesAsExtensionsPluginTarget implements PluginTarget {
         }
 
         @Override
-        public void visitSoftwareTypeProperty(String propertyName, PropertyValue value, SoftwareType softwareType) {
+        public void visitSoftwareTypeProperty(String propertyName, PropertyValue value, Class<?> declaredPropertyType, SoftwareType softwareType) {
             ExtensionContainer extensions = ((ExtensionAware) target).getExtensions();
-            Class<?> returnType = softwareType.modelPublicType();
+            Class<?> returnType = softwareType.modelPublicType() == Void.class ? declaredPropertyType : softwareType.modelPublicType();
             extensions.add(returnType, softwareType.name(), Cast.uncheckedNonnullCast(value.call()));
         }
     }
