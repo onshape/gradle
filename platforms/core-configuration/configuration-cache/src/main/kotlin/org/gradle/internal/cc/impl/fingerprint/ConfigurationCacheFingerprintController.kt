@@ -16,6 +16,7 @@
 
 package org.gradle.internal.cc.impl.fingerprint
 
+import org.gradle.api.internal.artifacts.configurations.ProjectComponentObservationListener
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.FileCollectionInternal
 import org.gradle.api.internal.file.collections.DirectoryFileTreeFactory
@@ -101,7 +102,8 @@ class ConfigurationCacheFingerprintController internal constructor(
     }
 
     private
-    val fileCollectionFingerprinter = fingerprinterRegistry.getFingerprinter(DefaultFileNormalizationSpec.from(InputNormalizer.ABSOLUTE_PATH, DirectorySensitivity.DEFAULT, LineEndingSensitivity.DEFAULT))
+    val fileCollectionFingerprinter =
+        fingerprinterRegistry.getFingerprinter(DefaultFileNormalizationSpec.from(InputNormalizer.ABSOLUTE_PATH, DirectorySensitivity.DEFAULT, LineEndingSensitivity.DEFAULT))
 
     private
     abstract class WritingState {
@@ -123,6 +125,9 @@ class ConfigurationCacheFingerprintController internal constructor(
 
         open fun <T> runCollectingFingerprintForProject(identityPath: Path, action: () -> T): T =
             illegalStateFor("collectFingerprintForProject")
+
+        open fun projectObserved(consumingProjectPath: Path?, targetProjectPath: Path): Unit =
+            illegalStateFor("projectObserved")
 
         abstract fun dispose(): WritingState
 
@@ -182,6 +187,10 @@ class ConfigurationCacheFingerprintController internal constructor(
             return Paused(fingerprintWriter, buildScopedSpoolFile, projectScopedSpoolFile)
         }
 
+        override fun projectObserved(consumingProjectPath: Path?, targetProjectPath: Path) {
+            fingerprintWriter.projectObserved(consumingProjectPath, targetProjectPath)
+        }
+
         override fun dispose() =
             pause().dispose()
     }
@@ -224,6 +233,10 @@ class ConfigurationCacheFingerprintController internal constructor(
             return Idle()
         }
 
+        override fun projectObserved(consumingProjectPath: Path?, targetProjectPath: Path) {
+            // ignore project dependencies observed outside of fingerprinting
+        }
+
         private
         fun closeStreams() {
             fingerprintWriter.close()
@@ -244,6 +257,13 @@ class ConfigurationCacheFingerprintController internal constructor(
 
     private
     var writingState: WritingState = Idle()
+
+    private
+    val lazyProjectComponentObservationListener = lazy {
+        ProjectComponentObservationListener { consumingProjectPath, targetProjectPath ->
+            this@ConfigurationCacheFingerprintController.writingState.projectObserved(consumingProjectPath, targetProjectPath)
+        }
+    }
 
     // Start fingerprinting if not already started and not already committed
     // This should be strict but currently this method may be called multiple times when a
@@ -273,6 +293,10 @@ class ConfigurationCacheFingerprintController internal constructor(
     }
 
     override fun stop() {
+        if (lazyProjectComponentObservationListener.isInitialized()) {
+            listenerManager.removeListener(lazyProjectComponentObservationListener)
+        }
+
         writingState = writingState.dispose()
     }
 
@@ -295,6 +319,9 @@ class ConfigurationCacheFingerprintController internal constructor(
 
     private
     fun addListener(listener: ConfigurationCacheFingerprintWriter) {
+        // removed when the controller is stopped, because the listener is stateful and cannot be added a second time
+        listenerManager.addListener(lazyProjectComponentObservationListener.value)
+
         listenerManager.addListener(listener)
         workInputListeners.addListener(listener)
         scriptFileResolverListeners.addListener(listener)
