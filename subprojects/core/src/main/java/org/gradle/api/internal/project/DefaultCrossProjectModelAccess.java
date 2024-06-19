@@ -21,6 +21,7 @@ import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.tasks.TaskDependencyUsageTracker;
 import org.gradle.execution.taskgraph.TaskExecutionGraphInternal;
 import org.gradle.internal.metaobject.DynamicObject;
+import org.gradle.invocation.IsolatedProjectEvaluationListenerProvider;
 
 import java.util.Map;
 import java.util.Set;
@@ -28,20 +29,29 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class DefaultCrossProjectModelAccess implements CrossProjectModelAccess {
+    private final GradleInternal gradle;
     private final ProjectRegistry<ProjectInternal> projectRegistry;
+    private final IsolatedProjectEvaluationListenerProvider isolatedProjectEvaluationListenerProvider;
 
-    public DefaultCrossProjectModelAccess(ProjectRegistry<ProjectInternal> projectRegistry) {
+    public DefaultCrossProjectModelAccess(
+        ProjectRegistry<ProjectInternal> projectRegistry,
+        GradleInternal gradle,
+        IsolatedProjectEvaluationListenerProvider isolatedProjectEvaluationListenerProvider
+    ) {
+        this.gradle = gradle;
         this.projectRegistry = projectRegistry;
+        this.isolatedProjectEvaluationListenerProvider = isolatedProjectEvaluationListenerProvider;
     }
 
     @Override
     public ProjectInternal access(ProjectInternal referrer, ProjectInternal project) {
-        return project;
+        return asAllprojectsAwareProject(project);
     }
 
     @Override
     public ProjectInternal findProject(ProjectInternal referrer, ProjectInternal relativeTo, String path) {
-        return projectRegistry.getProject(relativeTo.absoluteProjectPath(path));
+        ProjectInternal project = projectRegistry.getProject(relativeTo.absoluteProjectPath(path));
+        return project == null ? null : asAllprojectsAwareProject(project);
     }
 
     @Override
@@ -56,12 +66,16 @@ public class DefaultCrossProjectModelAccess implements CrossProjectModelAccess {
 
     @Override
     public Set<? extends ProjectInternal> getSubprojects(ProjectInternal referrer, ProjectInternal relativeTo) {
-        return new TreeSet<>(projectRegistry.getSubProjects(relativeTo.getPath()));
+        return projectRegistry.getSubProjects(relativeTo.getPath()).stream()
+            .map(this::asAllprojectsAwareProject)
+            .collect(Collectors.toCollection(TreeSet::new));
     }
 
     @Override
     public Set<? extends ProjectInternal> getAllprojects(ProjectInternal referrer, ProjectInternal relativeTo) {
-        return new TreeSet<>(projectRegistry.getAllProjects(relativeTo.getPath()));
+        return projectRegistry.getAllProjects(relativeTo.getPath()).stream()
+            .map(this::asAllprojectsAwareProject)
+            .collect(Collectors.toCollection(TreeSet::new));
     }
 
     @Override
@@ -83,5 +97,9 @@ public class DefaultCrossProjectModelAccess implements CrossProjectModelAccess {
     public DynamicObject parentProjectDynamicInheritedScope(ProjectInternal referrerProject) {
         ProjectInternal parent = referrerProject.getParent();
         return parent != null ? parent.getInheritedScope() : null;
+    }
+
+    private AllprojectsAwareProject asAllprojectsAwareProject(ProjectInternal project) {
+        return new AllprojectsAwareProject(project, isolatedProjectEvaluationListenerProvider, gradle);
     }
 }

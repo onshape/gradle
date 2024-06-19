@@ -695,11 +695,7 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
 
     @Override
     public void allprojects(ProjectInternal referrer, Action<? super Project> action) {
-        getProjectConfigurator().allprojects(
-            getAllprojects(referrer),
-            action,
-            isolatedProjectEvaluationListenerProvider.isolateAllprojectsActionFor(gradle)
-        );
+        getProjectConfigurator().allprojects(getAllprojects(referrer), action);
     }
 
     @Override
@@ -724,11 +720,7 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
 
     @Override
     public void subprojects(ProjectInternal referrer, Action<? super Project> configureAction) {
-        getProjectConfigurator().subprojects(
-            getSubprojects(referrer),
-            configureAction,
-            isolatedProjectEvaluationListenerProvider.isolateAllprojectsActionFor(gradle)
-        );
+        getProjectConfigurator().subprojects(getSubprojects(referrer), configureAction);
     }
 
     @Override
@@ -1245,11 +1237,7 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
     @Override
     public ProjectInternal project(ProjectInternal referrer, String path, Action<? super Project> configureAction) {
         ProjectInternal project = project(referrer, path);
-        getProjectConfigurator().project(
-            project,
-            configureAction,
-            isolatedProjectEvaluationListenerProvider.isolateAllprojectsActionFor(gradle)
-        );
+        getProjectConfigurator().project(project, configureAction);
         return project;
     }
 
