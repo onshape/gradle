@@ -28,6 +28,7 @@ public enum Severity {
     ADVICE("Advice"),
     WARNING("Warning"),
     ERROR("Error");
+
     private final String displayName;
 
     Severity(String displayName) {
