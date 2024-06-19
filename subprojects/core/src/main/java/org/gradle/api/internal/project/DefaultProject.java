@@ -110,7 +110,6 @@ import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.internal.service.ServiceRegistryBuilder;
 import org.gradle.internal.service.scopes.ServiceRegistryFactory;
 import org.gradle.internal.typeconversion.TypeConverter;
-import org.gradle.invocation.IsolatedProjectEvaluationListenerProvider;
 import org.gradle.listener.ClosureBackedMethodInvocationDispatch;
 import org.gradle.model.Model;
 import org.gradle.model.RuleSource;
@@ -210,8 +209,6 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
 
     private final DynamicLookupRoutine dynamicLookupRoutine;
 
-    private final IsolatedProjectEvaluationListenerProvider isolatedProjectEvaluationListenerProvider;
-
     private String description;
 
     private boolean preparedForRuleBasedPlugins;
@@ -262,8 +259,6 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
         ruleBasedPluginListenerBroadcast.add((RuleBasedPluginListener) project -> populateModelRegistry(services.get(ModelRegistry.class)));
 
         dynamicLookupRoutine = services.get(DynamicLookupRoutine.class);
-
-        isolatedProjectEvaluationListenerProvider = services.get(IsolatedProjectEvaluationListenerProvider.class);
     }
 
     @SuppressWarnings("unused")

@@ -45,13 +45,12 @@ public class DefaultCrossProjectModelAccess implements CrossProjectModelAccess {
 
     @Override
     public ProjectInternal access(ProjectInternal referrer, ProjectInternal project) {
-        return asAllprojectsAwareProject(project);
+        return project;
     }
 
     @Override
     public ProjectInternal findProject(ProjectInternal referrer, ProjectInternal relativeTo, String path) {
-        ProjectInternal project = projectRegistry.getProject(relativeTo.absoluteProjectPath(path));
-        return project == null ? null : asAllprojectsAwareProject(project);
+        return projectRegistry.getProject(relativeTo.absoluteProjectPath(path));
     }
 
     @Override
@@ -99,7 +98,9 @@ public class DefaultCrossProjectModelAccess implements CrossProjectModelAccess {
         return parent != null ? parent.getInheritedScope() : null;
     }
 
-    private AllprojectsAwareProject asAllprojectsAwareProject(ProjectInternal project) {
-        return new AllprojectsAwareProject(project, isolatedProjectEvaluationListenerProvider, gradle);
+    private ProjectInternal asAllprojectsAwareProject(ProjectInternal project) {
+        return project instanceof AllprojectsAwareProject
+            ? project
+            : new AllprojectsAwareProject(project, isolatedProjectEvaluationListenerProvider, gradle);
     }
 }

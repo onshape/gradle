@@ -20,7 +20,6 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
-import kotlin.Suppress;
 import org.gradle.api.Action;
 import org.gradle.api.AntBuilder;
 import org.gradle.api.InvalidUserDataException;
@@ -45,7 +44,6 @@ import org.gradle.api.file.DeleteSpec;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.SyncSpec;
-import org.gradle.api.internal.DynamicObjectAware;
 import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.ProcessOperations;
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
@@ -73,7 +71,6 @@ import org.gradle.configuration.ConfigurationTargetIdentifier;
 import org.gradle.configuration.project.ProjectConfigurationActionContainer;
 import org.gradle.groovy.scripts.ScriptSource;
 import org.gradle.internal.logging.StandardOutputCapture;
-import org.gradle.internal.metaobject.DynamicInvokeResult;
 import org.gradle.internal.metaobject.DynamicObject;
 import org.gradle.internal.model.ModelContainer;
 import org.gradle.internal.model.RuleBasedPluginListener;
@@ -97,8 +94,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-@SuppressWarnings("deprecation")
-@Suppress(names = "deprecation")
 public class AllprojectsAwareProject extends GroovyObjectSupport implements ProjectInternal {
 
     private final ProjectInternal delegate;
@@ -129,27 +124,39 @@ public class AllprojectsAwareProject extends GroovyObjectSupport implements Proj
     }
 
     @Override
-    public Object invokeMethod(String name, Object args) {
-        applyAllprojects();
-        DynamicObject dynamicObject = ((DynamicObjectAware) delegate).getAsDynamicObject();
-        DynamicInvokeResult result = dynamicObject.tryInvokeMethod(name, args);
-        if (result.isFound()) {
-            return result.getValue();
-        } else {
-            throw dynamicObject.methodMissingException(name, args);
-        }
+    public String toString() {
+        return delegate.toString();
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        AllprojectsAwareProject project = (AllprojectsAwareProject) other;
+        return this.delegate == project.delegate;
+    }
+
+    @Override
+    public int hashCode() {
+        return delegate.hashCode();
+    }
+
+    @Override
+    @Nullable
+    public Object invokeMethod(String name, Object args) {
+        applyAllprojects();
+        return ((GroovyObjectSupport) delegate).invokeMethod(name, args);
+    }
+
+    @Override
+    @Nullable
     public Object getProperty(String propertyName) {
         applyAllprojects();
-        DynamicObject dynamicObject = ((DynamicObjectAware) delegate).getAsDynamicObject();
-        DynamicInvokeResult result = dynamicObject.tryGetProperty(propertyName);
-        if (result.isFound()) {
-            return result.getValue();
-        } else {
-            throw dynamicObject.getMissingProperty(propertyName);
-        }
+        return ((GroovyObjectSupport) delegate).getProperty(propertyName);
     }
 
     @Nullable
@@ -235,7 +242,7 @@ public class AllprojectsAwareProject extends GroovyObjectSupport implements Proj
 
 
     @Override
-//    @Deprecated("Use layout.buildDirectory instead")
+    @SuppressWarnings("deprecation")
     public File getBuildDir() {
         applyAllprojects();
         return delegate.getBuildDir();
