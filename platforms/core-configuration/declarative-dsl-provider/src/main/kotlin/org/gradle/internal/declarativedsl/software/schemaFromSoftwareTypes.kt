@@ -23,7 +23,6 @@ import org.gradle.declarative.dsl.schema.SchemaMemberFunction
 import org.gradle.internal.declarativedsl.analysis.ConfigureAccessorInternal
 import org.gradle.internal.declarativedsl.analysis.DefaultDataMemberFunction
 import org.gradle.internal.declarativedsl.analysis.FunctionSemanticsInternal
-import org.gradle.internal.declarativedsl.common.withAllPotentiallyDeclarativeSupertypes
 import org.gradle.internal.declarativedsl.evaluationSchema.AnalysisSchemaComponent
 import org.gradle.internal.declarativedsl.evaluationSchema.EvaluationSchemaBuilder
 import org.gradle.internal.declarativedsl.evaluationSchema.EvaluationAndConversionSchemaBuilder
@@ -86,9 +85,7 @@ class SoftwareTypeComponent(
     private val softwareTypeImplementations: List<SoftwareTypeInfo<*>>
 ) : AnalysisSchemaComponent {
     override fun typeDiscovery(): List<TypeDiscovery> = listOf(
-        FixedTypeDiscovery(schemaTypeToExtend, softwareTypeImplementations.flatMap {
-            withAllPotentiallyDeclarativeSupertypes(it.modelPublicType.kotlin)
-        })
+        FixedTypeDiscovery(schemaTypeToExtend, softwareTypeImplementations.map { it.modelPublicType.kotlin })
     )
 
     override fun functionExtractors(): List<FunctionExtractor> = listOf(
