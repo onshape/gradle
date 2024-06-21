@@ -223,6 +223,7 @@ class ProblemReportingCrossProjectModelAccess(
             )
         }
 
+        @Suppress("SpreadOperator")
         override fun invokeMethod(name: String, args: Any): Any? {
             // Attempt to get the property value via this instance. If not present, then attempt to lookup via the delegate
             val varargs: Array<Any?> = args.uncheckedCast()
@@ -234,6 +235,7 @@ class ProblemReportingCrossProjectModelAccess(
 
             onProjectsCoupled()
 
+            @Suppress("SpreadOperator")
             return withDelegateDynamicCallReportingConfigurationOrder(
                 name,
                 action = { tryInvokeMethod(name, *varargs) },
