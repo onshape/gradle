@@ -19,7 +19,6 @@ package org.gradle.internal.cc.impl.io
 import org.gradle.internal.cc.base.debug
 import org.gradle.internal.cc.base.logger
 import java.io.OutputStream
-import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.util.Queue
 import java.util.concurrent.ArrayBlockingQueue
@@ -28,6 +27,11 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
+
+
+private
+typealias Packet = java.nio.ByteBuffer
 
 
 /**
@@ -37,10 +41,10 @@ internal
 object ParallelOutputStream {
 
     /**
-     * See [ByteBufferPool.bufferCapacity].
+     * See [PacketPool.packetSize].
      */
-    val bufferCapacity: Int
-        get() = ByteBufferPool.bufferCapacity
+    val recommendedBufferSize: Int
+        get() = PacketPool.packetSize
 
     /**
      * Returns an [OutputStream] that offloads writing to the stream returned by [createOutputStream]
@@ -49,48 +53,48 @@ object ParallelOutputStream {
      * Note that [createOutputStream] will be called in the writing thread.
      *
      * @see QueuedOutputStream
-     * @see ByteBufferPool
+     * @see PacketPool
      */
     fun of(createOutputStream: () -> OutputStream): OutputStream {
-        val buffers = ByteBufferPool()
-        val ready = ConcurrentLinkedQueue<ByteBuffer>()
+        val packets = PacketPool()
+        val readyQ = ConcurrentLinkedQueue<Packet>()
         val writer = thread(name = "CC writer", isDaemon = true, priority = Thread.NORM_PRIORITY) {
             try {
                 createOutputStream().use { outputStream ->
                     val outputChannel = Channels.newChannel(outputStream)
                     while (true) {
-                        val buffer = ready.poll()
-                        if (buffer == null) {
+                        val packet = readyQ.poll()
+                        if (packet == null) {
                             // give the producer another chance
                             Thread.yield()
                             continue
                         }
-                        if (!buffer.hasRemaining()) {
+                        if (!packet.hasRemaining()) {
                             /** producer is signaling end of stream
                              * see [QueuedOutputStream.close]
                              **/
                             break
                         }
                         try {
-                            outputChannel.write(buffer)
+                            outputChannel.write(packet)
                         } finally {
-                            // always return the buffer
-                            buffers.put(buffer)
+                            // always return the packet to the pool
+                            packets.put(packet)
                         }
                     }
                 }
             } catch (e: Exception) {
-                buffers.fail(e)
+                packets.fail(e)
             } finally {
                 // in case of failure, this releases some memory until the
                 // producer realizes there was a failure
-                ready.clear()
+                readyQ.clear()
             }
             logger.debug {
                 "${javaClass.name} writer ${Thread.currentThread()} finished."
             }
         }
-        return QueuedOutputStream(buffers, ready) {
+        return QueuedOutputStream(packets, readyQ) {
             writer.join()
         }
     }
@@ -98,38 +102,38 @@ object ParallelOutputStream {
 
 
 /**
- * An [OutputStream] implementation that writes to buffers taken from a [ByteBufferPool]
- * and posts them to the given [ready] queue when they are full.
+ * An [OutputStream] implementation that writes to buffers taken from a [PacketPool]
+ * and posts them to the given [ready queue][readyQ] when they are full.
  */
 private
 class QueuedOutputStream(
-    private val buffers: ByteBufferPool,
-    private val ready: Queue<ByteBuffer>,
+    private val packets: PacketPool,
+    private val readyQ: Queue<Packet>,
     private val onClose: () -> Unit,
 ) : OutputStream() {
 
     private
-    var buffer = buffers.take()
+    var packet = packets.take()
 
     override fun write(b: ByteArray, off: Int, len: Int) {
         writeByteArray(b, off, len)
     }
 
     override fun write(b: Int) {
-        buffer.put(b.toByte())
+        packet.put(b.toByte())
         maybeFlush()
     }
 
     override fun close() {
         // send remaining data
-        if (buffer.position() > 0) {
-            sendBuffer()
-            takeNextBuffer()
+        if (packet.position() > 0) {
+            sendPacket()
+            takeNextPacket()
         }
         // send a last empty buffer to signal the end
-        sendBuffer()
+        sendPacket()
         onClose()
-        buffers.rethrowFailureIfAny()
+        packets.rethrowFailureIfAny()
         super.close()
     }
 
@@ -138,7 +142,7 @@ class QueuedOutputStream(
         if (len <= 0) {
             return
         }
-        val remaining = buffer.remaining()
+        val remaining = packet.remaining()
         if (remaining > len) {
             putByteArrayAndFlush(b, off, len)
         } else {
@@ -149,37 +153,37 @@ class QueuedOutputStream(
 
     private
     fun putByteArrayAndFlush(b: ByteArray, off: Int, len: Int) {
-        buffer.put(b, off, len)
+        packet.put(b, off, len)
         maybeFlush()
     }
 
     private
     fun maybeFlush() {
-        if (!buffer.hasRemaining()) {
-            sendBuffer()
-            takeNextBuffer()
+        if (!packet.hasRemaining()) {
+            sendPacket()
+            takeNextPacket()
         }
     }
 
     private
-    fun sendBuffer() {
-        buffer.flip()
-        ready.offer(buffer)
+    fun sendPacket() {
+        packet.flip()
+        readyQ.offer(packet)
     }
 
     private
-    fun takeNextBuffer() {
-        buffer = buffers.take()
+    fun takeNextPacket() {
+        packet = packets.take()
     }
 }
 
 
 /**
- * Manages a pool of buffers of fixed [capacity][ByteBufferPool.bufferCapacity] allocated on-demand
- * upto a [fixed maximum][ByteBufferPool.bufferCount].
+ * Manages a pool of packets of fixed [size][PacketPool.packetSize] allocated on-demand
+ * upto a [fixed maximum][PacketPool.maxPackets].
  */
 private
-class ByteBufferPool {
+class PacketPool {
 
     companion object {
 
@@ -189,45 +193,58 @@ class ByteBufferPool {
          * The smaller the number the more parallelism between producer and writer.
          * The default is `32` for increased parallelism.
          */
-        val bufferCapacity = System.getProperty("org.gradle.configuration-cache.internal.buffer-capacity", null)?.toInt()
+        val packetSize = System.getProperty("org.gradle.configuration-cache.internal.packet-size", null)?.toInt()
             ?: 32
 
         /**
-         * Maximum number of buffers to be allocated.
+         * Maximum number of packets to be allocated.
          *
-         * Determines the maximum memory working set: [bufferCount] * [bufferCapacity].
+         * Determines the maximum memory working set: [maxPackets] * [packetSize].
          * The default maximum working set is `32MB`.
          */
-        val bufferCount = System.getProperty("org.gradle.configuration-cache.internal.buffer-count", null)?.toInt()
+        val maxPackets = System.getProperty("org.gradle.configuration-cache.internal.max-packets", null)?.toInt()
             ?: (1024 * 1024)
 
-        val timeoutMinutes: Long = System.getProperty("org.gradle.configuration-cache.internal.buffer-timeout-minutes", null)?.toLong()
+        val packetTimeoutMinutes: Long = System.getProperty("org.gradle.configuration-cache.internal.packet-timeout-minutes", null)?.toLong()
             ?: 30L /* stream can be kept open during the whole configuration phase */
     }
 
     private
-    val buffers = ArrayBlockingQueue<ByteBuffer>(bufferCount)
+    val packets = ArrayBlockingQueue<Packet>(maxPackets)
 
     private
-    var buffersToAllocate = buffers.remainingCapacity()
+    var packetsToAllocate = maxPackets
 
     private
     val failure = AtomicReference<Exception>(null)
 
-    fun put(buffer: ByteBuffer) {
-        buffer.flip()
-        if (!buffers.offer(buffer, timeoutMinutes, TimeUnit.MINUTES)) {
+    fun put(packet: Packet) {
+        packet.flip()
+        if (!packets.offer(packet, packetTimeoutMinutes, TimeUnit.MINUTES)) {
             timeout()
         }
     }
 
-    fun take(): ByteBuffer {
+    private
+    val packetReuseThreshold = (maxPackets * 0.9).roundToInt()
+
+    fun take(): Packet {
         rethrowFailureIfAny()
-        if (buffersToAllocate > 0) {
-            --buffersToAllocate
-            return ByteBuffer.allocate(bufferCapacity)
+        val remainingAllocations = packetsToAllocate
+        if (remainingAllocations > 0) {
+            if (remainingAllocations < packetReuseThreshold) {
+                // try to reuse packets past some threshold
+                // we avoid reusing soon to avoid the cost
+                // of locking the packets queue
+                val reused = packets.poll()
+                if (reused != null) {
+                    return reused
+                }
+            }
+            --packetsToAllocate
+            return Packet.allocate(packetSize)
         }
-        return buffers.poll(timeoutMinutes, TimeUnit.MINUTES)
+        return packets.poll(packetTimeoutMinutes, TimeUnit.MINUTES)
             ?: timeout()
     }
 
@@ -242,7 +259,5 @@ class ByteBufferPool {
     }
 
     private
-    fun timeout(): Nothing = throw TimeoutException("Writer thread timed out.")
+    fun timeout(): Nothing = throw TimeoutException("Timed out while waiting for a packet.")
 }
-
-

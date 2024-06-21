@@ -255,7 +255,7 @@ class ConfigurationCacheIO internal constructor(
         (when {
             parallelize -> KryoBackedEncoder(
                 ParallelOutputStream.of { FramedSnappyCompressorOutputStream(outputStream) },
-                ParallelOutputStream.bufferCapacity
+                ParallelOutputStream.recommendedBufferSize
             )
 
             else -> KryoBackedEncoder(
