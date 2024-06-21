@@ -18,8 +18,6 @@ package org.gradle.internal.cc.impl.io
 
 import org.gradle.internal.cc.base.debug
 import org.gradle.internal.cc.base.logger
-import org.gradle.internal.cc.impl.io.ByteBufferPool.Companion.bufferCount
-import org.gradle.internal.extensions.stdlib.useToRun
 import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
@@ -32,6 +30,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 
+/**
+ * Factory for an [OutputStream] decorator that offloads the writing to a separate thread.
+ */
 internal
 object ParallelOutputStream {
 
@@ -41,13 +42,22 @@ object ParallelOutputStream {
     val bufferCapacity: Int
         get() = ByteBufferPool.bufferCapacity
 
+    /**
+     * Returns an [OutputStream] that offloads writing to the stream returned by [createOutputStream]
+     * to a separate thread.
+     *
+     * Note that [createOutputStream] will be called in the writing thread.
+     *
+     * @see QueuedOutputStream
+     * @see ByteBufferPool
+     */
     fun of(createOutputStream: () -> OutputStream): OutputStream {
         val buffers = ByteBufferPool()
         val ready = ConcurrentLinkedQueue<ByteBuffer>()
         val writer = thread(name = "CC writer", isDaemon = true, priority = Thread.NORM_PRIORITY) {
             try {
-                createOutputStream().useToRun {
-                    val outputChannel = Channels.newChannel(this)
+                createOutputStream().use { outputStream ->
+                    val outputChannel = Channels.newChannel(outputStream)
                     while (true) {
                         val buffer = ready.poll()
                         if (buffer == null) {
@@ -165,7 +175,8 @@ class QueuedOutputStream(
 
 
 /**
- * Manages a pool of [bufferCount] buffers allocated on-demand.
+ * Manages a pool of buffers of fixed [capacity][ByteBufferPool.bufferCapacity] allocated on-demand
+ * upto a [fixed maximum][ByteBufferPool.bufferCount].
  */
 private
 class ByteBufferPool {
@@ -176,7 +187,7 @@ class ByteBufferPool {
          * How many bytes are transferred, at a time, from the producer to the writer thread.
          *
          * The smaller the number the more parallelism between producer and writer.
-         * The default is `32` for increase parallelism.
+         * The default is `32` for increased parallelism.
          */
         val bufferCapacity = System.getProperty("org.gradle.configuration-cache.internal.buffer-capacity", null)?.toInt()
             ?: 32
