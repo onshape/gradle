@@ -48,7 +48,6 @@ class RepoScriptBlockUtil {
     }
 
     private static enum MirroredRepository {
-        JCENTER(BINTRAY_JCENTER_URL, System.getProperty('org.gradle.integtest.mirrors.jcenter'), "maven"),
         MAVEN_CENTRAL(MAVEN_CENTRAL_URL, System.getProperty('org.gradle.integtest.mirrors.mavencentral'), "maven"),
         GOOGLE(GOOGLE_URL, System.getProperty('org.gradle.integtest.mirrors.google'), "maven"),
         LIGHTBEND_MAVEN("https://repo.lightbend.com/lightbend/maven-releases", System.getProperty('org.gradle.integtest.mirrors.lightbendmaven'), "maven"),
@@ -92,14 +91,6 @@ class RepoScriptBlockUtil {
     private RepoScriptBlockUtil() {
     }
 
-    static String jcenterRepository(GradleDsl dsl = GROOVY) {
-        """
-            repositories {
-                ${jcenterRepositoryDefinition(dsl)}
-            }
-        """
-    }
-
     static void configureMavenCentral(RepositoryHandler repositories) {
         MirroredRepository.MAVEN_CENTRAL.configure(repositories)
     }
@@ -118,10 +109,6 @@ class RepoScriptBlockUtil {
                 ${googleRepositoryDefinition(dsl)}
             }
         """
-    }
-
-    static String jcenterRepositoryDefinition(GradleDsl dsl = GROOVY) {
-        MirroredRepository.JCENTER.getRepositoryDefinition(dsl)
     }
 
     static String mavenCentralRepositoryDefinition(GradleDsl dsl = GROOVY) {
