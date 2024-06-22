@@ -19,7 +19,6 @@ package org.gradle.internal.cc.impl.io
 import org.gradle.internal.cc.base.debug
 import org.gradle.internal.cc.base.logger
 import java.io.OutputStream
-import java.nio.channels.Channels
 import java.util.Queue
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -59,8 +58,8 @@ object ParallelOutputStream {
         val readyQ = ConcurrentLinkedQueue<Packet>()
         val writer = thread(name = "CC writer", isDaemon = true, priority = Thread.NORM_PRIORITY) {
             try {
+                val buffer = ByteArray(PacketPool.packetSize)
                 createOutputStream().use { outputStream ->
-                    val outputChannel = Channels.newChannel(outputStream)
                     while (true) {
                         val packet = readyQ.poll()
                         if (packet == null) {
@@ -76,7 +75,9 @@ object ParallelOutputStream {
                             break
                         }
                         try {
-                            outputChannel.write(packet)
+                            val remaining = packet.remaining()
+                            packet.get(buffer, 0, remaining)
+                            outputStream.write(buffer, 0, remaining)
                         } finally {
                             // always return the packet to the pool
                             packet.flip()
