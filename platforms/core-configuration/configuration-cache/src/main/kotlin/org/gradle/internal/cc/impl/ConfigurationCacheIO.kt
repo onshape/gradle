@@ -18,6 +18,8 @@ package org.gradle.internal.cc.impl
 
 import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorInputStream
 import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorOutputStream
+import org.apache.commons.compress.compressors.snappy.SnappyCompressorInputStream
+import org.apache.commons.compress.compressors.snappy.SnappyCompressorOutputStream
 import org.gradle.api.logging.LogLevel
 import org.gradle.cache.internal.streams.BlockAddress
 import org.gradle.cache.internal.streams.BlockAddressSerializer
@@ -254,13 +256,11 @@ class ConfigurationCacheIO internal constructor(
     fun writerContextFor(outputStream: OutputStream, parallelize: Boolean, profile: () -> String): Pair<DefaultWriteContext, Codecs> =
         (when {
             parallelize -> KryoBackedEncoder(
-                ParallelOutputStream.of { FramedSnappyCompressorOutputStream(outputStream) },
+                ParallelOutputStream.of { compressorOutputStreamFor(outputStream) },
                 ParallelOutputStream.recommendedBufferSize
             )
 
-            else -> KryoBackedEncoder(
-                FramedSnappyCompressorOutputStream(outputStream)
-            )
+            else -> KryoBackedEncoder(compressorOutputStreamFor(outputStream))
         }).let { encoder ->
             writeContextFor(
                 encoder,
@@ -268,6 +268,16 @@ class ConfigurationCacheIO internal constructor(
                 codecs
             ) to codecs
         }
+
+    private
+    fun compressorOutputStreamFor(outputStream: OutputStream) =
+        FramedSnappyCompressorOutputStream(
+            outputStream,
+            SnappyCompressorOutputStream
+                .createParameterBuilder(SnappyCompressorInputStream.DEFAULT_BLOCK_SIZE)
+                .tunedForSpeed()
+                .build()
+        )
 
     private
     fun loggingTracerFor(profile: () -> String, encoder: KryoBackedEncoder) =
