@@ -191,20 +191,19 @@ class PacketPool {
         /**
          * How many bytes are transferred, at a time, from the producer to the writer thread.
          *
-         * The smaller the number the more parallelism between producer and writer.
-         * The default is `32` for increased parallelism.
+         * The smaller the number the more parallelism between producer and writer (but also greater the synchronization overhead).
          */
         val packetSize = System.getProperty("org.gradle.configuration-cache.internal.packet-size", null)?.toInt()
-            ?: 32
+            ?: 4096
 
         /**
          * Maximum number of packets to be allocated.
          *
          * Determines the maximum memory working set: [maxPackets] * [packetSize].
-         * The default maximum working set is `32MB`.
+         * The default maximum working set is `16MB`.
          */
         val maxPackets = System.getProperty("org.gradle.configuration-cache.internal.max-packets", null)?.toInt()
-            ?: (1024 * 1024)
+            ?: 4096
 
         val packetTimeoutMinutes: Long = System.getProperty("org.gradle.configuration-cache.internal.packet-timeout-minutes", null)?.toLong()
             ?: 30L /* stream can be kept open during the whole configuration phase */
