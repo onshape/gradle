@@ -25,7 +25,6 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
@@ -48,7 +47,7 @@ object ParallelOutputStream {
 
     /**
      * Returns an [OutputStream] that offloads writing to the stream returned by [createOutputStream]
-     * to a separate thread.
+     * to a separate thread. The returned stream can only be written to from a single thread at a time.
      *
      * Note that [createOutputStream] will be called in the writing thread.
      *
@@ -69,6 +68,7 @@ object ParallelOutputStream {
                             Thread.yield()
                             continue
                         }
+                        packet.flip()
                         if (!packet.hasRemaining()) {
                             /** producer is signaling end of stream
                              * see [QueuedOutputStream.close]
@@ -79,6 +79,7 @@ object ParallelOutputStream {
                             outputChannel.write(packet)
                         } finally {
                             // always return the packet to the pool
+                            packet.flip()
                             packets.put(packet)
                         }
                     }
@@ -130,7 +131,7 @@ class QueuedOutputStream(
             sendPacket()
             takeNextPacket()
         }
-        // send a last empty buffer to signal the end
+        // send a last empty packet to signal the end
         sendPacket()
         onClose()
         packets.rethrowFailureIfAny()
@@ -143,7 +144,7 @@ class QueuedOutputStream(
             return
         }
         val remaining = packet.remaining()
-        if (remaining > len) {
+        if (remaining >= len) {
             putByteArrayAndFlush(b, off, len)
         } else {
             putByteArrayAndFlush(b, off, remaining)
@@ -167,7 +168,6 @@ class QueuedOutputStream(
 
     private
     fun sendPacket() {
-        packet.flip()
         readyQ.offer(packet)
     }
 
@@ -215,14 +215,13 @@ class PacketPool {
     private
     var packetsToAllocate = maxPackets
 
+    @Volatile
     private
-    val failure = AtomicReference<Exception>(null)
+    var failure: Exception? = null
 
     fun put(packet: Packet) {
-        packet.flip()
-        if (!packets.offer(packet, packetTimeoutMinutes, TimeUnit.MINUTES)) {
-            timeout()
-        }
+        require(packet.position() == 0 && packet.remaining() == packet.limit())
+        require(packets.offer(packet))
     }
 
     private
@@ -234,8 +233,7 @@ class PacketPool {
         if (remainingAllocations > 0) {
             if (remainingAllocations < packetReuseThreshold) {
                 // try to reuse packets past some threshold
-                // we avoid reusing soon to avoid the cost
-                // of locking the packets queue
+                // to amortize the cost of locking the packets queue
                 val reused = packets.poll()
                 if (reused != null) {
                     return reused
@@ -245,19 +243,16 @@ class PacketPool {
             return Packet.allocate(packetSize)
         }
         return packets.poll(packetTimeoutMinutes, TimeUnit.MINUTES)
-            ?: timeout()
+            ?: throw TimeoutException("Timed out while waiting for a packet.")
     }
 
     fun fail(e: Exception) {
-        failure.set(e)
+        failure = e
     }
 
     fun rethrowFailureIfAny() {
-        failure.get()?.let {
+        failure?.let {
             throw it
         }
     }
-
-    private
-    fun timeout(): Nothing = throw TimeoutException("Timed out while waiting for a packet.")
 }
