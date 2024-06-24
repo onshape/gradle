@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 class ParseTestUtil {
 
     companion object Parser {
-        fun parse(@Language("kts") code: String): LanguageTreeResult {
+        fun parse(@Language("dcl") code: String): LanguageTreeResult {
             val parsedTree = org.gradle.internal.declarativedsl.parsing.parse(code)
             return DefaultLanguageTreeBuilder().build(parsedTree, SourceIdentifier("test"))
         }
