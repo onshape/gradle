@@ -19,6 +19,7 @@ package org.gradle.internal.cc.impl.io
 import org.gradle.internal.cc.base.debug
 import org.gradle.internal.cc.base.logger
 import java.io.OutputStream
+import java.nio.Buffer
 import java.util.Queue
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -58,7 +59,6 @@ object ParallelOutputStream {
         val readyQ = ConcurrentLinkedQueue<Packet>()
         val writer = thread(name = "CC writer", isDaemon = true, priority = Thread.NORM_PRIORITY) {
             try {
-                val buffer = ByteArray(PacketPool.packetSize)
                 createOutputStream().use { outputStream ->
                     while (true) {
                         val packet = readyQ.poll()
@@ -67,7 +67,7 @@ object ParallelOutputStream {
                             Thread.yield()
                             continue
                         }
-                        packet.flip()
+                        flip(packet)
                         if (!packet.hasRemaining()) {
                             /** producer is signaling end of stream
                              * see [QueuedOutputStream.close]
@@ -75,12 +75,10 @@ object ParallelOutputStream {
                             break
                         }
                         try {
-                            val remaining = packet.remaining()
-                            packet.get(buffer, 0, remaining)
-                            outputStream.write(buffer, 0, remaining)
+                            outputStream.write(packet.array(), 0, packet.remaining())
                         } finally {
                             // always return the packet to the pool
-                            packet.flip()
+                            makeEmpty(packet)
                             packets.put(packet)
                         }
                     }
@@ -99,6 +97,19 @@ object ParallelOutputStream {
         return QueuedOutputStream(packets, readyQ) {
             writer.join()
         }
+    }
+
+    private
+    fun flip(packet: Buffer) {
+        // packet.flip() is not available in Java 8
+        packet
+            .limit(packet.position())
+            .position(0)
+    }
+
+    private
+    fun makeEmpty(packet: Buffer) {
+        packet.limit(packet.capacity())
     }
 }
 
