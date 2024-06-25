@@ -53,6 +53,7 @@ import org.gradle.internal.DisplayName;
 import org.gradle.internal.buildoption.InternalFlag;
 import org.gradle.internal.buildoption.InternalOptions;
 import org.gradle.internal.component.local.model.OpaqueComponentIdentifier;
+import org.gradle.internal.jvm.JpmsConfiguration;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.plugin.devel.GradlePluginDevelopmentExtension;
@@ -477,7 +478,7 @@ public abstract class JavaGradlePluginPlugin implements Plugin<Project> {
         @Override
         public Iterable<String> asArguments() {
             return test.getJavaVersion().isCompatibleWith(JavaVersion.VERSION_1_9)
-                ? Collections.singletonList("--add-opens=java.base/java.lang=ALL-UNNAMED")
+                ? JpmsConfiguration.GRADLE_DAEMON_JPMS_ARGS
                 : Collections.emptyList();
         }
     }
